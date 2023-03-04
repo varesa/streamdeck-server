@@ -13,7 +13,7 @@ use lazy_static::lazy_static;
 async fn do_nothing() {}
 
 struct Hub {
-    ws_clients: Mutex<Vec<Sender<String>>>,
+    ws_clients: Mutex<Vec<Sender<Vec<u8>>>>,
 }
 
 impl Hub {
@@ -23,7 +23,7 @@ impl Hub {
         }
     }
 
-    async fn register_client(&self) -> Receiver<String> {
+    async fn register_client(&self) -> Receiver<Vec<u8>> {
         let (tx, rx) = channel(10); 
         self.ws_clients.lock().await.push(tx);
         rx
@@ -38,7 +38,7 @@ impl Hub {
             if let Ok(buttons) = buttons {
                 println!("Got event from StreamDeck");
                 for client in self.ws_clients.lock().await.iter_mut() {
-                    client.send("Hello".into()).await.expect("Failed to send channel message"); 
+                    client.send(buttons.clone()).await.expect("Failed to send channel message"); 
                 }
                 dbg!(buttons);
             }
@@ -56,7 +56,7 @@ async fn client_handler(mut tx: SplitSink<WebSocket, Message>, _rx: SplitStream<
     let mut streamdeck_channel = HUB.register_client().await;
     while let Some(event) = streamdeck_channel.next().await {
         println!("Got event from hub");
-        tx.send(Message::text(event)).await.expect("Failed to send websocket message");
+        tx.send(Message::binary(event)).await.expect("Failed to send websocket message");
     }
 }
 

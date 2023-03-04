@@ -1,31 +1,44 @@
 <html>
     <head>
         <script>
-            let socket = new WebSocket("ws://localhost:8085/ws");
+            async function run() {
+                let socket = new WebSocket("ws://localhost:8085/ws");
 
-            socket.onopen = function(e) {
-              console.log("[open] Connection established");
-              console.log("Sending to server");
-              socket.send("Hello");
-            };
+                socket.onopen = function(e) {
+                  console.log("[open] Connection established");
+                  console.log("Sending to server");
+                  socket.send("Hello");
+                };
 
-            socket.onmessage = function(event) {
-              console.log(`[message] Data received from server: ${event.data}`);
-            };
+                socket.onmessage = function(event) {
+                  console.log(`[message] Data received from server: ${event.data}`);
+                  (async function() {
+                    console.log(`[message] In async: ${event.data}`);
+                    let arrb = await event.data.arrayBuffer();
+                    let arru8 = new Uint8Array(arrb);
+                    console.log(arru8);
+                    document.getElementById("test").innerText = arru8.toString();
+                  })()
+                };
 
-            socket.onclose = function(event) {
-              if (event.wasClean) {
-                console.log(`[close] Connection closed cleanly, code=${event.code} reason=${event.reason}`);
-              } else {
-                // e.g. server process killed or network down
-                // event.code is usually 1006 in this case
-                console.log('[close] Connection died');
-              }
-            };
+                socket.onclose = function(event) {
+                  if (event.wasClean) {
+                    console.log(`[close] Connection closed cleanly, code=${event.code} reason=${event.reason}`);
+                  } else {
+                    // e.g. server process killed or network down
+                    // event.code is usually 1006 in this case
+                    console.log('[close] Connection died');
+                  }
+                };
 
-            socket.onerror = function(error) {
-              console.log(`[error]`);
-            };
+                socket.onerror = function(error) {
+                  console.log(`[error]`);
+                };
+            }
+            run()
         </script>
     </head>
+    <body>
+        <span id="test"/>
+    </body>
 </html>
