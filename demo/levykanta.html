@@ -1,0 +1,44 @@
+<html>
+    <head>
+        <script>
+            let socket = new WebSocket("ws://localhost:8085/ws");
+            let levykanta = new WebSocket("ws://i.levykanta.wappuradio.fi/");
+
+            socket.onopen = function(e) {
+              console.log("[open] Connection established");
+            };
+            levykanta.onopen = function(e) {
+              console.log("[open] Levykanta connection established");
+            };
+
+            socket.onmessage = function(event) {
+              console.log(`[message] Data received from server: ${event.data}`);
+              (async function() {
+                let arrb = await event.data.arrayBuffer();
+                let arru8 = new Uint8Array(arrb);
+                if (arru8[0] == 1) {
+                    levykanta.send('pause 0');
+                }
+                if (arru8[1] == 1) {
+                    levykanta.send('pause 1');
+                }
+              })()
+            };
+
+            socket.onclose = function(event) {
+              if (event.wasClean) {
+                console.log(`[close] Connection closed cleanly, code=${event.code} reason=${event.reason}`);
+              } else {
+                console.log('[close] Connection died');
+              }
+            };
+
+            socket.onerror = function(error) {
+              console.log(`[error]`);
+            };
+        </script>
+    </head>
+    <body>
+        <span id="test"/>
+    </body>
+</html>
