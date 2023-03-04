@@ -2,7 +2,7 @@ use futures::{StreamExt, SinkExt};
 use futures::channel::mpsc::{channel, Receiver, Sender};
 use futures::lock::Mutex;
 use futures::stream::{SplitStream, SplitSink};
-use streamdeck::{Colour, StreamDeck};
+use streamdeck::StreamDeck;
 use tokio::task::yield_now;
 use warp::Filter;
 use warp::ws::Message;
@@ -37,8 +37,15 @@ impl Hub {
             let buttons = deck.read_buttons(None); //.expect("Failed to get buttons");
             if let Ok(buttons) = buttons {
                 println!("Got event from StreamDeck");
+                let mut cleanup_needed = false;
                 for client in self.ws_clients.lock().await.iter_mut() {
-                    client.send(buttons.clone()).await.expect("Failed to send channel message"); 
+                    if let Err(e) = client.send(buttons.clone()).await {
+                        dbg!(e);
+                        cleanup_needed = true;
+                    }
+                }
+                if cleanup_needed {
+                    self.ws_clients.lock().await.retain(|elem| !elem.is_closed());
                 }
                 dbg!(buttons);
             }
@@ -56,7 +63,11 @@ async fn client_handler(mut tx: SplitSink<WebSocket, Message>, _rx: SplitStream<
     let mut streamdeck_channel = HUB.register_client().await;
     while let Some(event) = streamdeck_channel.next().await {
         println!("Got event from hub");
-        tx.send(Message::binary(event)).await.expect("Failed to send websocket message");
+        if let Err(e) = tx.send(Message::binary(event)).await {
+            dbg!(e);
+            streamdeck_channel.close();
+            break;
+        }
     }
 }
 
