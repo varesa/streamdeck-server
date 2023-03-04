@@ -14,12 +14,11 @@
             socket.onmessage = function(event) {
               console.log(`[message] Data received from server: ${event.data}`);
               (async function() {
-                let arrb = await event.data.arrayBuffer();
-                let arru8 = new Uint8Array(arrb);
-                if (arru8[0] == 1) {
+                let buttons = new Uint8Array(await event.data.arrayBuffer());
+                if (buttons[0] == 1) {
                     levykanta.send('pause 0');
                 }
-                if (arru8[1] == 1) {
+                if (buttons[1] == 1) {
                     levykanta.send('pause 1');
                 }
               })()
@@ -38,7 +37,4 @@
             };
         </script>
     </head>
-    <body>
-        <span id="test"/>
-    </body>
 </html>
